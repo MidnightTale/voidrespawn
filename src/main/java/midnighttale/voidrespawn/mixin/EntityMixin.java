@@ -1,6 +1,5 @@
 package midnighttale.voidrespawn.mixin;
 
-import midnighttale.voidrespawn.Voidrespawn;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvents;
@@ -9,6 +8,7 @@ import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
+import net.minecraft.core.particles.ParticleTypes;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -16,9 +16,14 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Objects;
+import java.util.Random;
 
 @Mixin(Entity.class)
 public class EntityMixin {
+
+    // Add random for particle positioning
+    @Unique
+    private static final Random voidrespawn$RANDOM = new Random();
 
     /**
      * Intercept when an entity falls below the world and teleport it instead of killing it
@@ -53,6 +58,62 @@ public class EntityMixin {
     }
     
     /**
+     * Check if player should receive darkness effect when falling
+     */
+    @Unique
+    private boolean voidrespawn$shouldApplyDarknessEffect() {
+        Entity self = (Entity)(Object)this;
+        // Apply darkness in dimensions other than Overworld when between Y=-32 and Y=-60
+        return self.level().dimension() != Level.OVERWORLD && self.getY() < -32.0 && self.getY() > -60.0;
+    }
+    
+    /**
+     * Inject to check if player is falling and should get darkness effect
+     */
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void onTick(CallbackInfo ci) {
+        if (voidrespawn$shouldApplyDarknessEffect()) {
+            Entity self = (Entity)(Object)this;
+            if (self instanceof ServerPlayer serverPlayer) {
+                // Apply darkness effect for 5 seconds (40 ticks)
+                MobEffectInstance darkness = new MobEffectInstance(MobEffects.DARKNESS, 100, 0, false, false);
+                serverPlayer.addEffect(darkness);
+            }
+        }
+    }
+    
+    /**
+     * Create particle effect at entity location
+     */
+    @Unique
+    private void voidrespawn$spawnTeleportParticles(ServerLevel level, double x, double y, double z) {
+        // Spawn a cluster of particles
+        for (int i = 0; i < 50; i++) {
+            double offsetX = voidrespawn$RANDOM.nextGaussian() * 0.5;
+            double offsetY = voidrespawn$RANDOM.nextGaussian() * 0.5;
+            double offsetZ = voidrespawn$RANDOM.nextGaussian() * 0.5;
+            
+            // Mix of particles for a dramatic effect
+            level.sendParticles(
+                ParticleTypes.PORTAL,
+                x + offsetX, 
+                y + offsetY,
+                z + offsetZ,
+                1, 0, 0, 0, 0);
+            
+            // Add some end rod particles for a bright effect
+            if (i % 5 == 0) {
+                level.sendParticles(
+                    ParticleTypes.END_ROD,
+                    x + offsetX,
+                    y + offsetY,
+                    z + offsetZ,
+                    1, 0, 0, 0, 0);
+            }
+        }
+    }
+    
+    /**
      * Common method to handle teleportation from void
      */
     @Unique
@@ -79,19 +140,29 @@ public class EntityMixin {
             float yRot = self.getYRot();
             float xRot = self.getXRot();
             
+            // Spawn particles at current position (in void)
+            if (self.level() instanceof ServerLevel sourceLevel) {
+                voidrespawn$spawnTeleportParticles(sourceLevel, self.getX(), -60, self.getZ());
+            }
+            
             // Play teleport exit sound at the source dimension
             self.level().playSound(null, self.getX(), -60, self.getZ(),
                 SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 0.6F);
             
             if (self instanceof ServerPlayer serverPlayer) {
                 // Apply blindness effect for 5 seconds (100 ticks)
-                serverPlayer.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0));
+                MobEffectInstance blindness = new MobEffectInstance(MobEffects.DARKNESS, 300, 0, false, false);
+                serverPlayer.addEffect(blindness);
                 
-                // Apply slow falling for 10 seconds (200 ticks) to prevent fall damage
-                serverPlayer.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 60, 0));
+                // Apply slow falling for 3 seconds (60 ticks) to prevent fall damage
+                MobEffectInstance slowFalling = new MobEffectInstance(MobEffects.SLOW_FALLING, 100, 0, false, false);
+                serverPlayer.addEffect(slowFalling);
                 
                 // Teleport the player
                 serverPlayer.teleportTo(overworld, x, 1024, z, yRot, xRot);
+                
+                // Spawn particles at destination
+                voidrespawn$spawnTeleportParticles(overworld, x, 1024, z);
                 
                 // Play teleport arrival sound at the destination
                 overworld.playSound(null, x, 1024, z,
@@ -106,6 +177,9 @@ public class EntityMixin {
                     newEntity.setXRot(xRot);
                     overworld.addFreshEntity(newEntity);
                     self.discard();
+                    
+                    // Spawn particles at destination
+                    voidrespawn$spawnTeleportParticles(overworld, x, 1024, z);
                     
                     // Play teleport arrival sound at the destination
                     overworld.playSound(null, x, 1024, z,
