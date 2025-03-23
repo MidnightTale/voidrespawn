@@ -1,0 +1,30 @@
+modLoader="javafml"
+loaderVersion="[4,)" # Minimum FML version
+license="GNU GPL 3.0"
+
+[[mods]]
+modId="voidrespawn"
+version="1.0-SNAPSHOT"
+displayName="Void Respawn"
+displayURL="https://github.com/midnighttale/voidrespawn"
+authors="midnighttale"
+description='''
+A simple mod that teleports entities from the End void to the Overworld sky.
+'''
+
+[[mixins]]
+config="voidrespawn.mixins.json"
+
+[[dependencies.voidrespawn]]
+modId="minecraft"
+mandatory=true
+versionRange="1.21.1"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.voidrespawn]]
+modId="neoforge"
+mandatory=true
+versionRange="[21,)"
+ordering="NONE"
+side="BOTH"

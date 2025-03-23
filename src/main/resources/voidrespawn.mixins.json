@@ -1,0 +1,15 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "midnighttale.voidrespawn.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "refmap": "voidrespawn.refmap.json",
+  "mixins": [
+    "EntityMixin"
+  ],
+  "client": [
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
