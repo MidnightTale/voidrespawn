@@ -44,7 +44,7 @@ public class EntityMixin {
     private boolean voidrespawn$shouldTeleportFromVoid() {
         Entity self = (Entity)(Object)this;
         // Only teleport from dimensions other than the Overworld AND when below Y=-64 (in the void)
-        return self.level().dimension() != Level.OVERWORLD && self.getY() < -64.0;
+        return self.level().dimension() != Level.OVERWORLD && self.getY() < -256.0;
     }
     
     /**
@@ -75,7 +75,7 @@ public class EntityMixin {
             float xRot = self.getXRot();
             
             if (self instanceof ServerPlayer serverPlayer) {
-                serverPlayer.teleportTo(overworld, x, 320, z, yRot, xRot);
+                serverPlayer.teleportTo(overworld, x, 1024, z, yRot, xRot);
             } else {
                 // Handle non-player entities
                 Entity newEntity = self.getType().create(overworld);
