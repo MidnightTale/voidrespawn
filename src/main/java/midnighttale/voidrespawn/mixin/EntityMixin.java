@@ -1,5 +1,6 @@
 package midnighttale.voidrespawn.mixin;
 
+import midnighttale.voidrespawn.Voidrespawn;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.Entity;
@@ -43,8 +44,8 @@ public class EntityMixin {
     @Unique
     private boolean voidrespawn$shouldTeleportFromVoid() {
         Entity self = (Entity)(Object)this;
-        // Only teleport from dimensions other than the Overworld AND when below Y=-64 (in the void)
-        return self.level().dimension() != Level.OVERWORLD && self.getY() < -256.0;
+        // Only teleport from dimensions other than the Overworld AND when below Y=-60 (in the void)
+        return self.level().dimension() != Level.OVERWORLD && self.getY() < -60.0;
     }
     
     /**
@@ -68,7 +69,7 @@ public class EntityMixin {
         }
         
         if (overworld != null) {
-            // Teleport to same X,Z coordinates but at Y=320 in Overworld
+            // Teleport to same X,Z coordinates but at Y=1024 in Overworld
             double x = self.getX();
             double z = self.getZ();
             float yRot = self.getYRot();
