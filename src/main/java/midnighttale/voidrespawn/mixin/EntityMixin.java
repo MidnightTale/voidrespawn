@@ -3,6 +3,10 @@ package midnighttale.voidrespawn.mixin;
 import midnighttale.voidrespawn.Voidrespawn;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.sounds.SoundSource;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
@@ -69,24 +73,43 @@ public class EntityMixin {
         }
         
         if (overworld != null) {
-            // Teleport to same X,Z coordinates but at Y=1024 in Overworld
+            // Teleport to same X,Z coordinates but at Y=320 in Overworld
             double x = self.getX();
             double z = self.getZ();
             float yRot = self.getYRot();
             float xRot = self.getXRot();
             
+            // Play teleport exit sound at the source dimension
+            self.level().playSound(null, self.getX(), -60, self.getZ(),
+                SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 0.6F);
+            
             if (self instanceof ServerPlayer serverPlayer) {
+                // Apply blindness effect for 5 seconds (100 ticks)
+                serverPlayer.addEffect(new MobEffectInstance(MobEffects.BLINDNESS, 100, 0));
+                
+                // Apply slow falling for 10 seconds (200 ticks) to prevent fall damage
+                serverPlayer.addEffect(new MobEffectInstance(MobEffects.SLOW_FALLING, 60, 0));
+                
+                // Teleport the player
                 serverPlayer.teleportTo(overworld, x, 1024, z, yRot, xRot);
+                
+                // Play teleport arrival sound at the destination
+                overworld.playSound(null, x, 1024, z,
+                    SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 1.8F);
             } else {
                 // Handle non-player entities
                 Entity newEntity = self.getType().create(overworld);
                 if (newEntity != null) {
                     newEntity.copyPosition(self);
-                    newEntity.setPos(x, 320, z);
+                    newEntity.setPos(x, 1024, z);
                     newEntity.setYRot(yRot);
                     newEntity.setXRot(xRot);
                     overworld.addFreshEntity(newEntity);
                     self.discard();
+                    
+                    // Play teleport arrival sound at the destination
+                    overworld.playSound(null, x, 1024, z,
+                        SoundEvents.ENDERMAN_TELEPORT, SoundSource.PLAYERS, 0.8F, 1.8F);
                 }
             }
         }
